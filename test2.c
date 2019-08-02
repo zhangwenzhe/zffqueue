@@ -6,15 +6,18 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
-#include "zffqueue.h"
+#include <zffqueue.h>
 
 
 int main(){
 	zffqueue_map();
-	unsigned long i;
+	unsigned long *p;
 	while(1){
-		zffqueue_get(&i, 8);	
-		printf("getting %d\n", i);
+		p = (unsigned long*)zffqueue_get();	
+		if(p != NULL){
+			printf("getting %d\n", *p);
+			zffqueue_pop();
+		}
 		sleep(1);
 	}
 

@@ -6,7 +6,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
-#include "zffqueue.h"
+#include <zffqueue.h>
 
 
 int main(){
@@ -14,7 +14,7 @@ int main(){
 	unsigned long i=0;
 	while(1){
 		printf("putting %d\n", i);
-		zffqueue_put(&i, 8);	
+		zffqueue_put(&i);	
 		i++;
 		sleep(2);
 	}

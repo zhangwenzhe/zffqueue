@@ -12,12 +12,21 @@ struct zffqueue{
 	int wp;
 	int n;
 	unsigned long one_sz;
+	int linesize;
 	char buf[0];
 };
 
 static struct zffqueue * zp = NULL;
 
-int zffqueue_init(unsigned long sz, int n){
+unsigned long zffqueue_get_onesz(){
+	return zp->one_sz;
+}
+
+int zffqueue_get_linesz(){
+	return zp->linesize;
+}
+
+int zffqueue_init(unsigned long sz, int n, int linesz){
 	int ret;
 	int fd = shm_open("zffqueue", O_RDWR|O_CREAT, 0777);
 	if(fd < 0){
@@ -39,6 +48,7 @@ int zffqueue_init(unsigned long sz, int n){
 	zp->one_sz = sz;
 	zp->n = n;
 	zp->rp = zp->wp = 0;
+	zp->linesize = linesz;
 
 	return 0;	
 }
@@ -74,44 +84,52 @@ int zffqueue_map(){
 	return 0;	
 }
 
-int zffqueue_put(void *p, unsigned long sz){
+static void print_data(void *p, unsigned long sz){
+	int i;
+	printf("======================================\n");
+	for(i = 0; i<sz/8; i++){
+		printf("%lx\n",((unsigned long *)p)[i]);
+	}	
+	printf("======================================\n");
+}
+
+int zffqueue_put(void *p){
 	void * dst;
-	printf("before put wp %d\n", zp->wp);
-	if(sz != zp->one_sz){
-		printf("error put object sz\n");
-		return -1;
-	}
+	//printf("before put wp %d\n", zp->wp);
 	if(((zp->wp + 1)%zp->n) == zp->rp){
-		printf("queue full\n");
+		//printf("queue full\n");
 		return -1;
 	}
 	dst = zp->buf + zp->wp*zp->one_sz;
-	memcpy(dst, p, sz);
+	memcpy(dst, p, zp->one_sz);
 	zp->wp = (zp->wp + 1)%zp->n;
-
-	printf("after put wp %d\n", zp->wp);
+	//print_data(p, zp->one_sz);
+	//printf("after put wp %d\n", zp->wp);
 	return 0;
 }
 
-int zffqueue_get(void *p, unsigned long sz){
+void * zffqueue_get(){
 	void * src;
-	printf("before get rp %d\n", zp->rp);
-	if(sz != zp->one_sz){
-		printf("error get object sz\n");
-		return -1;
-	}
+	//printf("get rp %d\n", zp->rp);
 	if(zp->wp == zp->rp){
-		printf("queue empty\n");
-		return -1;
+		//printf("queue empty\n");
+		return NULL;
 	}
-	src = zp->buf + zp->rp*zp->one_sz;
-	memcpy(p, src, sz);
-	zp->rp = (zp->rp + 1)%zp->n;
-	printf("after get rp %d\n", zp->rp);
-	return 0;
+	//print_data(zp->buf + zp->rp*zp->one_sz, zp->one_sz);
+	return zp->buf + zp->rp*zp->one_sz;
 }
 
 
+int zffqueue_pop(){
+	//printf("before get rp %d\n", zp->rp);
+	if(zp->wp == zp->rp){
+		//printf("queue empty\n");
+		return -1;
+	}
+	zp->rp = (zp->rp + 1)%zp->n;
+	//printf("after get rp %d\n", zp->rp);
+	return 0;
+}
 /*
 int main(){
 	zffqueue_init(8, 10);
